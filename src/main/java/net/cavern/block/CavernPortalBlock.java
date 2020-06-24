@@ -100,10 +100,10 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 	public BlockState getStateForNeighborUpdate(BlockState state, Direction facing, BlockState neighborState, IWorld world, BlockPos pos, BlockPos neighborPos)
 	{
 		Direction.Axis axis = facing.getAxis();
-		Direction.Axis axis2 = state.get(AXIS);
-		boolean bl = axis2 != axis && axis.isHorizontal();
+		Direction.Axis stateAxis = state.get(AXIS);
+		boolean bl = stateAxis != axis && axis.isHorizontal();
 
-		return !bl && neighborState.getBlock() != this && !(new CavernPortalBlock.AreaHelper(world, pos, axis2)).wasAlreadyValid() ? Blocks.AIR.getDefaultState() : super.getStateForNeighborUpdate(state, facing, neighborState, world, pos, neighborPos);
+		return !bl && neighborState.getBlock() != this && !(new CavernPortalBlock.AreaHelper(world, pos, stateAxis)).wasAlreadyValid() ? Blocks.AIR.getDefaultState() : super.getStateForNeighborUpdate(state, facing, neighborState, world, pos, neighborPos);
 	}
 
 	@Override
@@ -164,10 +164,10 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 			double horizontalOffset = Math.abs(MathHelper.minusDiv((result.getForwards().getAxis() == Direction.Axis.X ? entity.getZ() : entity.getX()) - (result.getForwards().rotateYClockwise().getDirection() == Direction.AxisDirection.NEGATIVE ? 1 : 0), d, d - result.getWidth()));
 			double verticalOffset = MathHelper.minusDiv(entity.getY() - 1.0D, result.getFrontTopLeft().getY(), result.getFrontTopLeft().getY() - result.getHeight());
 
-			EntityHooks hooks = (EntityHooks)entity;
+			EntityHooks access = (EntityHooks)entity;
 
-			hooks.setLastNetherPortalDirectionVector(new Vec3d(horizontalOffset, verticalOffset, 0.0D));
-			hooks.setLastNetherPortalDirection(result.getForwards());
+			access.setLastNetherPortalDirectionVector(new Vec3d(horizontalOffset, verticalOffset, 0.0D));
+			access.setLastNetherPortalDirection(result.getForwards());
 
 			FabricDimensions.teleport(entity, destination, getDimension().getDefaultPlacement());
 		}
@@ -353,15 +353,15 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 			{
 				for (i = 0; i < width; ++i)
 				{
-					BlockPos blockPos = lowerCorner.offset(negativeDir, i).up(height);
-					BlockState blockState = world.getBlockState(blockPos);
+					BlockPos pos = lowerCorner.offset(negativeDir, i).up(height);
+					BlockState state = world.getBlockState(pos);
 
-					if (!validStateInsidePortal(blockState))
+					if (!validStateInsidePortal(state))
 					{
 						break outside;
 					}
 
-					Block block = blockState.getBlock();
+					Block block = state.getBlock();
 
 					if (block == CaveBlocks.CAVERN_PORTAL)
 					{
@@ -370,7 +370,7 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 
 					if (i == 0)
 					{
-						block = world.getBlockState(blockPos.offset(positiveDir)).getBlock();
+						block = world.getBlockState(pos.offset(positiveDir)).getBlock();
 
 						if (block != Blocks.MOSSY_COBBLESTONE)
 						{
@@ -379,7 +379,7 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 					}
 					else if (i == width - 1)
 					{
-						block = world.getBlockState(blockPos.offset(negativeDir)).getBlock();
+						block = world.getBlockState(pos.offset(negativeDir)).getBlock();
 
 						if (block != Blocks.MOSSY_COBBLESTONE)
 						{

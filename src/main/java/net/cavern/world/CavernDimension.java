@@ -57,8 +57,7 @@ public class CavernDimension extends Dimension
 		return false;
 	}
 
-	@Environment(EnvType.CLIENT)
-	@Override
+	@Environment(EnvType.CLIENT) @Override
 	public Vec3d getFogColor(float skyAngle, float tickDelta)
 	{
 		return FOG_COLOR;
@@ -70,8 +69,7 @@ public class CavernDimension extends Dimension
 		return false;
 	}
 
-	@Environment(EnvType.CLIENT)
-	@Override
+	@Environment(EnvType.CLIENT) @Override
 	public boolean isFogThick(int x, int z)
 	{
 		return false;

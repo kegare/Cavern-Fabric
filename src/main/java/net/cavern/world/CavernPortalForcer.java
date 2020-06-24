@@ -28,12 +28,13 @@ public class CavernPortalForcer implements EntityPlacer
 	@Override
 	public BlockPattern.TeleportTarget placeEntity(Entity teleported, ServerWorld destination, Direction portalDir, double horizontalOffset, double verticalOffset)
 	{
+		BlockPos originPos = teleported.getBlockPos();
 		Vec3d velocity = teleported.getVelocity();
-		BlockPattern.TeleportTarget ret = getPortal(destination, teleported.getBlockPos(), velocity, portalDir, horizontalOffset, verticalOffset);
+		BlockPattern.TeleportTarget ret = getPortal(destination, originPos, velocity, portalDir, horizontalOffset, verticalOffset);
 
 		if (ret == null)
 		{
-			BlockPos pos = createPortal(destination, teleported);
+			BlockPos pos = createPortal(destination, originPos);
 
 			if (pos != null)
 			{
@@ -43,7 +44,7 @@ public class CavernPortalForcer implements EntityPlacer
 
 		if (ret == null)
 		{
-			BlockPos pos = getForcedTeleportPoint(destination, teleported);
+			BlockPos pos = getForcedTeleportPoint(destination, originPos);
 
 			if (pos != null)
 			{
@@ -54,14 +55,14 @@ public class CavernPortalForcer implements EntityPlacer
 		return ret;
 	}
 
-	public BlockPattern.TeleportTarget getPortal(ServerWorld world, BlockPos blockPos, Vec3d velocity, Direction direction, double horizontalOffset, double verticalOffset)
+	public BlockPattern.TeleportTarget getPortal(ServerWorld world, BlockPos originPos, Vec3d velocity, Direction direction, double horizontalOffset, double verticalOffset)
 	{
 		PointOfInterestStorage storage = world.getPointOfInterestStorage();
 
-		storage.method_22439(world, blockPos, 128);
+		storage.method_22439(world, originPos, 128);
 
-		List<PointOfInterest> list = storage.method_22383(o -> o == CavePointTypes.CAVERN_PORTAL, blockPos, 128, PointOfInterestStorage.OccupationStatus.ANY).collect(Collectors.toList());
-		Optional<PointOfInterest> ret = list.stream().min(Comparator.comparingDouble(o -> ((PointOfInterest)o).getPos().getSquaredDistance(blockPos)).thenComparingInt(o -> ((PointOfInterest)o).getPos().getY()));
+		List<PointOfInterest> list = storage.method_22383(o -> o == CavePointTypes.CAVERN_PORTAL, originPos, 128, PointOfInterestStorage.OccupationStatus.ANY).collect(Collectors.toList());
+		Optional<PointOfInterest> ret = list.stream().min(Comparator.<PointOfInterest>comparingDouble(o -> o.getPos().getSquaredDistance(originPos)).thenComparingInt(o -> o.getPos().getY()));
 
 		return ret.map(o ->
 		{
@@ -73,16 +74,13 @@ public class CavernPortalForcer implements EntityPlacer
 		}).orElse((BlockPattern.TeleportTarget)null);
 	}
 
-	public BlockPos createPortal(ServerWorld world, Entity entity)
+	public BlockPos createPortal(ServerWorld world, BlockPos originPos)
 	{
-		int originX = MathHelper.floor(entity.getX());
-		int originY = MathHelper.floor(entity.getY());
-		int originZ = MathHelper.floor(entity.getZ());
 		int min = 10;
 		int max = world.getEffectiveHeight() - 10;
-		int x = originX;
-		int y = originY;
-		int z = originZ;
+		int x = originPos.getX();
+		int y = originPos.getY();
+		int z = originPos.getZ();
 		int i = 0;
 		int j = world.random.nextInt(4);
 		BlockPos.Mutable pos = new BlockPos.Mutable();
@@ -96,13 +94,13 @@ public class CavernPortalForcer implements EntityPlacer
 				{
 					if (Math.abs(rx) < r && Math.abs(rz) < r) continue;
 
-					int px = originX + rx;
+					int px = originPos.getX() + rx;
 					int py = min;
-					int pz = originZ + rz;
+					int pz = originPos.getZ() + rz;
 
 					finder: while (true)
 					{
-						for (py = originY; py <= max; ++py)
+						for (py = originPos.getY(); py <= max; ++py)
 						{
 							if (world.isAir(pos.set(px, py, pz)) && world.getBlockState(pos.setOffset(Direction.DOWN)).getMaterial().isSolid())
 							{
@@ -110,7 +108,7 @@ public class CavernPortalForcer implements EntityPlacer
 							}
 						}
 
-						for (py = originY; py >= min; --py)
+						for (py = originPos.getY(); py >= min; --py)
 						{
 							if (world.isAir(pos.set(px, py, pz)) && world.getBlockState(pos.setOffset(Direction.DOWN)).getMaterial().isSolid())
 							{
@@ -128,18 +126,17 @@ public class CavernPortalForcer implements EntityPlacer
 						continue;
 					}
 
-					double xSize = px + 0.5D - entity.getX();
-					double zSize = pz + 0.5D - entity.getZ();
+					double dist = originPos.getSquaredDistance(px, py, pz, true);
 
 					outside: for (int k = j; k < j + 4; ++k)
 					{
-						int i1 = k % 2;
-						int j1 = 1 - i1;
+						int xDist = k % 2;
+						int zDist = 1 - xDist;
 
 						if (k % 4 >= 2)
 						{
-							i1 = -i1;
-							j1 = -j1;
+							xDist = -xDist;
+							zDist = -zDist;
 						}
 
 						for (int size1 = 0; size1 < 3; ++size1)
@@ -148,11 +145,7 @@ public class CavernPortalForcer implements EntityPlacer
 							{
 								for (int height = -1; height < 4; ++height)
 								{
-									int checkX = px + (size2 - 1) * i1 + size1 * j1;
-									int checkY = py + height;
-									int checkZ = pz + (size2 - 1) * j1 - size1 * i1;
-
-									pos.set(checkX, checkY, checkZ);
+									pos.set(px + (size2 - 1) * xDist + size1 * zDist, py + height, pz + (size2 - 1) * zDist - size1 * xDist);
 
 									if (height < 0 && !world.getBlockState(pos).getMaterial().isSolid() || height >= 0 && !world.isAir(pos))
 									{
@@ -162,12 +155,9 @@ public class CavernPortalForcer implements EntityPlacer
 							}
 						}
 
-						double ySize = py + 0.5D - entity.getY();
-						double size = xSize * xSize + ySize * ySize + zSize * zSize;
-
-						if (portalDist < 0.0D || size < portalDist)
+						if (portalDist < 0.0D || dist < portalDist)
 						{
-							portalDist = size;
+							portalDist = dist;
 							x = px;
 							y = py;
 							z = pz;
@@ -193,13 +183,13 @@ public class CavernPortalForcer implements EntityPlacer
 					{
 						if (Math.abs(rx) < r && Math.abs(rz) < r) continue;
 
-						int px = originX + rx;
+						int px = originPos.getX() + rx;
 						int py = min;
-						int pz = originZ + rz;
+						int pz = originPos.getZ() + rz;
 
 						finder: while (true)
 						{
-							for (py = originY; py <= max; ++py)
+							for (py = originPos.getY(); py <= max; ++py)
 							{
 								if (world.isAir(pos.set(px, py, pz)) && world.getBlockState(pos.setOffset(Direction.DOWN)).getMaterial().isSolid())
 								{
@@ -207,7 +197,7 @@ public class CavernPortalForcer implements EntityPlacer
 								}
 							}
 
-							for (py = originY; py >= min; --py)
+							for (py = originPos.getY(); py >= min; --py)
 							{
 								if (world.isAir(pos.set(px, py, pz)) && world.getBlockState(pos.setOffset(Direction.DOWN)).getMaterial().isSolid())
 								{
@@ -225,23 +215,18 @@ public class CavernPortalForcer implements EntityPlacer
 							continue;
 						}
 
-						double xSize = px + 0.5D - entity.getX();
-						double zSize = pz + 0.5D - entity.getZ();
+						double dist = originPos.getSquaredDistance(px, py, pz, true);
 
 						outside: for (int k = j; k < j + 2; ++k)
 						{
-							int i1 = k % 2;
-							int j1 = 1 - i1;
+							int xDist = k % 2;
+							int zDist = 1 - xDist;
 
 							for (int width = 0; width < 4; ++width)
 							{
 								for (int height = -1; height < 4; ++height)
 								{
-									int px1 = px + (width - 1) * i1;
-									int py1 = py + height;
-									int pz1 = pz + (width - 1) * j1;
-
-									pos.set(px1, py1, pz1);
+									pos.set(px + (width - 1) * xDist, py + height, pz + (width - 1) * zDist);
 
 									if (height < 0 && !world.getBlockState(pos).getMaterial().isSolid() || height >= 0 && !world.isAir(pos))
 									{
@@ -250,12 +235,9 @@ public class CavernPortalForcer implements EntityPlacer
 								}
 							}
 
-							double ySize = py + 0.5D - entity.getY();
-							double size = xSize * xSize + ySize * ySize + zSize * zSize;
-
-							if (portalDist < 0.0D || size < portalDist)
+							if (portalDist < 0.0D || dist < portalDist)
 							{
-								portalDist = size;
+								portalDist = dist;
 								x = px;
 								y = py;
 								z = pz;
@@ -272,22 +254,18 @@ public class CavernPortalForcer implements EntityPlacer
 			}
 		}
 
-		int x1 = x;
-		int y1 = y;
-		int z1 = z;
-		int i1 = i % 2;
-		int j1 = 1 - i1;
+		int xDist = i % 2;
+		int zDist = 1 - xDist;
 
 		if (i % 4 >= 2)
 		{
-			i1 = -i1;
-			j1 = -j1;
+			xDist = -xDist;
+			zDist = -zDist;
 		}
 
 		if (portalDist < 0.0D)
 		{
 			y = MathHelper.clamp(y, min, max);
-			y1 = y;
 
 			for (int size1 = -1; size1 <= 1; ++size1)
 			{
@@ -295,9 +273,9 @@ public class CavernPortalForcer implements EntityPlacer
 				{
 					for (int height = -1; height < 3; ++height)
 					{
-						int blockX = x1 + (size2 - 1) * i1 + size1 * j1;
-						int blockY = y1 + height;
-						int blockZ = z1 + (size2 - 1) * j1 - size1 * i1;
+						int blockX = x + (size2 - 1) * xDist + size1 * zDist;
+						int blockY = y + height;
+						int blockZ = z + (size2 - 1) * zDist - size1 * xDist;
 						boolean flag = height < 0;
 
 						world.setBlockState(pos.set(blockX, blockY, blockZ), flag ? Blocks.MOSSY_COBBLESTONE.getDefaultState() : Blocks.AIR.getDefaultState());
@@ -312,21 +290,21 @@ public class CavernPortalForcer implements EntityPlacer
 			{
 				if (width == -1 || width == 2 || height == -1 || height == 3)
 				{
-					pos.set(x1 + width * i1, y1 + height, z1 + width * j1);
+					pos.set(x + width * xDist, y + height, z + width * zDist);
 
 					world.setBlockState(pos, Blocks.MOSSY_COBBLESTONE.getDefaultState());
 				}
 			}
 		}
 
-		BlockState portalState = CaveBlocks.CAVERN_PORTAL.getDefaultState().with(CavernPortalBlock.AXIS, i1 != 0 ? Direction.Axis.X : Direction.Axis.Z);
+		BlockState portalState = CaveBlocks.CAVERN_PORTAL.getDefaultState().with(CavernPortalBlock.AXIS, xDist != 0 ? Direction.Axis.X : Direction.Axis.Z);
 		BlockPos portalPos = null;
 
 		for (int width = 0; width < 2; ++width)
 		{
 			for (int height = 0; height < 3; ++height)
 			{
-				world.setBlockState(pos.set(x1 + width * i1, y1 + height, z1 + width * j1), portalState, 18);
+				world.setBlockState(pos.set(x + width * xDist, y + height, z + width * zDist), portalState, 18);
 
 				if (width == 1 && height == 0)
 				{
@@ -338,9 +316,9 @@ public class CavernPortalForcer implements EntityPlacer
 		return portalPos;
 	}
 
-	public BlockPos getForcedTeleportPoint(ServerWorld world, Entity entity)
+	public BlockPos getForcedTeleportPoint(ServerWorld world, BlockPos originPos)
 	{
-		BlockPos.Mutable pos = new BlockPos.Mutable(entity.getBlockPos());
+		BlockPos.Mutable pos = new BlockPos.Mutable(originPos);
 		int originX = pos.getX();
 		int originY = pos.getY();
 		int originZ = pos.getZ();
