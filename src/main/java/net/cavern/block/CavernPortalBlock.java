@@ -3,9 +3,13 @@ package net.cavern.block;
 import com.google.common.cache.LoadingCache;
 
 import net.cavern.init.CaveBlocks;
+import net.cavern.init.CaveDimensions;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.dimension.v1.FabricDimensionType;
+import net.fabricmc.fabric.api.dimension.v1.FabricDimensions;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.mixin.dimension.EntityHooks;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -25,14 +29,18 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 
 public class CavernPortalBlock extends Block implements UseBlockCallback
 {
-	protected static final EnumProperty<Direction.Axis> AXIS = Properties.HORIZONTAL_AXIS;
+	public static final EnumProperty<Direction.Axis> AXIS = Properties.HORIZONTAL_AXIS;
+
 	protected static final VoxelShape X_SHAPE = Block.createCuboidShape(0.0D, 0.0D, 6.0D, 16.0D, 16.0D, 10.0D);
 	protected static final VoxelShape Z_SHAPE = Block.createCuboidShape(6.0D, 0.0D, 0.0D, 10.0D, 16.0D, 16.0D);
 
@@ -40,6 +48,11 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 	{
 		super(settings);
 		this.setDefaultState(stateManager.getDefaultState().with(AXIS, Direction.Axis.X));
+	}
+
+	public FabricDimensionType getDimension()
+	{
+		return CaveDimensions.CAVERN;
 	}
 
 	@Override
@@ -126,9 +139,37 @@ public class CavernPortalBlock extends Block implements UseBlockCallback
 	@Override
 	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity)
 	{
-		if (!entity.hasVehicle() && !entity.hasPassengers() && entity.canUsePortals())
+		if (!world.isClient && !entity.hasVehicle() && !entity.hasPassengers() && entity.canUsePortals())
 		{
-			// NOOP
+			int cooldown = Math.max(entity.getDefaultNetherPortalCooldown(), 60);
+
+			if (entity.netherPortalCooldown > 0)
+			{
+				entity.netherPortalCooldown = cooldown;
+
+				return;
+			}
+
+			entity.netherPortalCooldown = cooldown;
+
+			DimensionType destination = DimensionType.OVERWORLD;
+
+			if (world.getDimension().getType() == destination)
+			{
+				destination = getDimension();
+			}
+
+			BlockPattern.Result result = findPortal(world, pos);
+			double d = result.getForwards().getAxis() == Direction.Axis.X ? (double)result.getFrontTopLeft().getZ() : (double)result.getFrontTopLeft().getX();
+			double horizontalOffset = Math.abs(MathHelper.minusDiv((result.getForwards().getAxis() == Direction.Axis.X ? entity.getZ() : entity.getX()) - (result.getForwards().rotateYClockwise().getDirection() == Direction.AxisDirection.NEGATIVE ? 1 : 0), d, d - result.getWidth()));
+			double verticalOffset = MathHelper.minusDiv(entity.getY() - 1.0D, result.getFrontTopLeft().getY(), result.getFrontTopLeft().getY() - result.getHeight());
+
+			EntityHooks hooks = (EntityHooks)entity;
+
+			hooks.setLastNetherPortalDirectionVector(new Vec3d(horizontalOffset, verticalOffset, 0.0D));
+			hooks.setLastNetherPortalDirection(result.getForwards());
+
+			FabricDimensions.teleport(entity, destination, getDimension().getDefaultPlacement());
 		}
 	}
 

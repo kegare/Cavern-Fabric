@@ -5,6 +5,7 @@ import net.cavern.init.CaveBlocks;
 import net.cavern.init.CaveCarvers;
 import net.cavern.init.CaveDimensions;
 import net.cavern.init.CaveEvents;
+import net.cavern.init.CavePointTypes;
 import net.fabricmc.api.ModInitializer;
 
 public class CavernMod implements ModInitializer
@@ -16,6 +17,7 @@ public class CavernMod implements ModInitializer
 		CaveCarvers.registerAll();
 		CaveBiomes.registerAll();
 		CaveDimensions.registerAll();
+		CavePointTypes.registerAll();
 		CaveEvents.registerAll();
 	}
 }
