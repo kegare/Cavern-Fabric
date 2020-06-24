@@ -1,9 +1,9 @@
 # Cavern: Fabric
-Minecraft mod. Adds new cave dimensions!
+Minecraft mod. Adds new cave dimension!
 
 ----
 ## Requires
-* [Fabric API](http://files.minecraftforge.net/) 0.12.0 build 313
+* [Fabric API](https://minecraft.curseforge.com/projects/fabric/files) 0.12.0 build 313
 
 ----
 ## License
@@ -14,4 +14,4 @@ Minecraft mod. Adds new cave dimensions!
 
 ----
 ## Links
-* [Cavern: Fabric]
+* Cavern: Fabric
