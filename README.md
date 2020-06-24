@@ -3,7 +3,7 @@ Minecraft mod. Adds new cave dimension!
 
 ----
 ## Requires
-* [Fabric API](https://minecraft.curseforge.com/projects/fabric/files) 0.12.0 build 313
+* [Fabric API](https://minecraft.curseforge.com/projects/fabric/files) 0.13.1 build 316
 
 ----
 ## License
