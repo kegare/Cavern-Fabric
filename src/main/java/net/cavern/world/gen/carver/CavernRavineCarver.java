@@ -1,4 +1,4 @@
-package net.cavern.world.gen;
+package net.cavern.world.gen.carver;
 
 import java.util.BitSet;
 import java.util.Random;

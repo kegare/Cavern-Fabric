@@ -28,7 +28,9 @@ public class CavernBiome extends Biome
 	protected void addCarvers()
 	{
 		addCarver(GenerationStep.Carver.AIR, configureCarver(CaveCarvers.CAVE, new ProbabilityConfig(0.2F)));
+		addCarver(GenerationStep.Carver.AIR, configureCarver(CaveCarvers.EXTREME_CAVE, new ProbabilityConfig(0.15F)));
 		addCarver(GenerationStep.Carver.AIR, configureCarver(CaveCarvers.CANYON, new ProbabilityConfig(0.02F)));
+		addCarver(GenerationStep.Carver.AIR, configureCarver(CaveCarvers.EXTREME_CANYON, new ProbabilityConfig(0.001F)));
 	}
 
 	protected void addFeatures()
