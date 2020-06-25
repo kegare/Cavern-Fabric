@@ -41,9 +41,9 @@ public class CavernCaveCarver extends CaveCarver
 	}
 
 	@Override
-	protected boolean carveAtPoint(Chunk chunk, Function<BlockPos, Biome> biomes, BitSet carvingMask, Random rand, BlockPos.Mutable posHere, BlockPos.Mutable posAbove, BlockPos.Mutable posBelow, int seaLevel, int chunkX, int chunkZ, int globalX, int globalZ, int x, int y, int z, AtomicBoolean foundSurface)
+	protected boolean carveAtPoint(Chunk chunk, Function<BlockPos, Biome> posToBiome, BitSet carvingMask, Random rand, BlockPos.Mutable posHere, BlockPos.Mutable posAbove, BlockPos.Mutable posBelow, int seaLevel, int chunkX, int chunkZ, int x, int z, int relativeX, int y, int relativeZ, AtomicBoolean foundSurface)
 	{
-		int i = x | z << 4 | y << 8;
+		int i = relativeX | relativeZ << 4 | y << 8;
 
 		if (carvingMask.get(i))
 		{
@@ -52,7 +52,7 @@ public class CavernCaveCarver extends CaveCarver
 		else
 		{
 			carvingMask.set(i);
-			posHere.set(globalX, y, globalZ);
+			posHere.set(x, y, z);
 
 			BlockState stateHere = chunk.getBlockState(posHere);
 			BlockState stateAbove = chunk.getBlockState(posAbove.set(posHere).setOffset(Direction.UP));
